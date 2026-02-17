@@ -32,9 +32,72 @@ function saveHistory(messages: Message[]): void {
   fs.writeFileSync(HISTORY_PATH, JSON.stringify(trimmed, null, 2));
 }
 
+/** Check if Clawdbot/OpenClaw gateway is configured */
+function getGatewayConfig() {
+  const url = process.env.CLAWDBOT_GATEWAY_URL;
+  const token = process.env.CLAWDBOT_GATEWAY_TOKEN;
+  if (url && token) {
+    return { url: url.replace(/\/+$/, ''), token };
+  }
+  return null;
+}
+
+/** Call Clawdbot/OpenClaw via OpenAI-compatible gateway API */
+async function callGateway(message: string, history: Message[]): Promise<string> {
+  const gateway = getGatewayConfig()!;
+
+  // Build messages array with recent history for context
+  const contextMessages = history.slice(-20).map(m => ({
+    role: m.role,
+    content: m.content,
+  }));
+  contextMessages.push({ role: 'user' as const, content: message });
+
+  const res = await fetch(`${gateway.url}/v1/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${gateway.token}`,
+      'Content-Type': 'application/json',
+      'x-clawdbot-agent-id': process.env.CLAWDBOT_AGENT_ID || 'main',
+    },
+    body: JSON.stringify({
+      model: process.env.CLAWDBOT_MODEL || 'clawdbot:main',
+      messages: contextMessages,
+      stream: false,
+    }),
+    signal: AbortSignal.timeout(120000),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => res.statusText);
+    throw new Error(`Gateway ${res.status}: ${errText.slice(0, 200)}`);
+  }
+
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content || 'Пустой ответ от ассистента';
+}
+
+/** Fallback: call claude CLI in non-interactive mode */
+function callClaudeCli(message: string): string {
+  const escaped = message.replace(/'/g, "'\\''");
+  return execSync(
+    `unset CLAUDECODE && claude --print '${escaped}'`,
+    {
+      encoding: 'utf-8',
+      timeout: 120000,
+      env: { ...process.env, CLAUDECODE: '' },
+      cwd: os.homedir(),
+    }
+  ).trim();
+}
+
 export function GET() {
   const messages = loadHistory();
-  return NextResponse.json({ messages });
+  const gateway = getGatewayConfig();
+  return NextResponse.json({
+    messages,
+    backend: gateway ? 'gateway' : 'claude-cli',
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -55,20 +118,17 @@ export async function POST(request: NextRequest) {
     };
     history.push(userMsg);
 
-    // Call claude CLI in non-interactive mode
+    // Call the configured backend
     let response: string;
     try {
-      // Unset CLAUDECODE to allow nested call, use --print for non-interactive
-      const escaped = message.replace(/'/g, "'\\''");
-      response = execSync(
-        `unset CLAUDECODE && claude --print '${escaped}'`,
-        {
-          encoding: 'utf-8',
-          timeout: 120000,
-          env: { ...process.env, CLAUDECODE: '' },
-          cwd: os.homedir(),
-        }
-      ).trim();
+      const gateway = getGatewayConfig();
+      if (gateway) {
+        // Clawdbot/OpenClaw gateway — sends history for context, same session
+        response = await callGateway(message.trim(), history.slice(0, -1));
+      } else {
+        // Fallback: isolated claude --print call
+        response = callClaudeCli(message.trim());
+      }
     } catch (err) {
       response = `Ошибка выполнения: ${(err as Error).message?.slice(0, 200) || 'Неизвестная ошибка'}`;
     }

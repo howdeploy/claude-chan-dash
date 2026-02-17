@@ -15,6 +15,7 @@ export default function ChatClient() {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [dots, setDots] = useState('');
+  const [backend, setBackend] = useState<'gateway' | 'claude-cli'>('claude-cli');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -28,7 +29,10 @@ export default function ChatClient() {
   // Load history
   useEffect(() => {
     fetch('/api/chat').then(r => r.json())
-      .then(data => { if (data.messages) setMessages(data.messages); })
+      .then(data => {
+        if (data.messages) setMessages(data.messages);
+        if (data.backend) setBackend(data.backend);
+      })
       .catch(() => {});
   }, []);
 
@@ -128,7 +132,7 @@ export default function ChatClient() {
             <span style={{ fontSize: '1.5rem' }}>▹</span>
             <span style={{ fontSize: '0.8125rem' }}>Напиши сообщение ассистенту</span>
             <span style={{ fontSize: '0.6875rem', color: 'var(--surface2)' }}>
-              Ответы через claude --print
+              {backend === 'gateway' ? 'Ответы через Clawdbot Gateway' : 'Ответы через claude --print'}
             </span>
           </div>
         )}

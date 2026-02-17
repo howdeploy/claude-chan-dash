@@ -49,36 +49,98 @@ function scanSkillDir(dirPath: string, type: 'system' | 'custom'): SkillData[] {
   return skills;
 }
 
-export function getAllSkills(): SkillData[] {
-  const homeDir = process.env.HOME || '/root';
+/** Find system skills installed via npx (clawdbot or openclaw). */
+function findNpxSkillPaths(homeDir: string): string[] {
+  const npxDir = path.join(homeDir, '.npm', '_npx');
+  if (!fs.existsSync(npxDir)) return [];
 
-  // Custom skills from ~/.claude/skills/
-  const customPath = path.join(homeDir, '.claude', 'skills');
-  const customSkills = scanSkillDir(customPath, 'custom');
+  const paths: string[] = [];
+  try {
+    const hashes = fs.readdirSync(npxDir, { withFileTypes: true });
+    for (const hash of hashes) {
+      if (!hash.isDirectory()) continue;
+      for (const pkg of ['clawdbot', 'openclaw']) {
+        const skillsDir = path.join(npxDir, hash.name, 'node_modules', pkg, 'skills');
+        if (fs.existsSync(skillsDir)) {
+          paths.push(skillsDir);
+        }
+      }
+    }
+  } catch { /* ignore */ }
 
-  // System skills from OpenClaw
-  const systemPaths = [
+  return paths;
+}
+
+/** Collect all skill search paths in priority order */
+function getSkillSearchPaths(homeDir: string): { custom: string[]; system: string[] } {
+  const custom: string[] = [];
+  const system: string[] = [];
+
+  // Custom: env override
+  if (process.env.CUSTOM_SKILLS_PATH) {
+    custom.push(process.env.CUSTOM_SKILLS_PATH);
+  }
+  // Custom: ~/clawd/skills/ (Clawdbot)
+  custom.push(path.join(homeDir, 'clawd', 'skills'));
+  // Custom: ~/openclaw/skills/ (OpenClaw)
+  custom.push(path.join(homeDir, 'openclaw', 'skills'));
+  // Custom: ~/.claude/skills/ (Claude Code native)
+  custom.push(path.join(homeDir, '.claude', 'skills'));
+
+  // System: env override
+  if (process.env.SYSTEM_SKILLS_PATH) {
+    system.push(process.env.SYSTEM_SKILLS_PATH);
+  }
+  // System: npx-installed clawdbot/openclaw
+  system.push(...findNpxSkillPaths(homeDir));
+  // System: global npm installs
+  system.push(
+    '/usr/lib/node_modules/clawdbot/skills',
     '/usr/lib/node_modules/openclaw/skills',
+    '/usr/local/lib/node_modules/clawdbot/skills',
     '/usr/local/lib/node_modules/openclaw/skills',
     path.join(homeDir, '.openclaw', 'skills'),
-  ];
+  );
 
-  const systemSkills: SkillData[] = [];
-  for (const p of systemPaths) {
-    systemSkills.push(...scanSkillDir(p, 'system'));
+  return { custom, system };
+}
+
+export function getAllSkills(): SkillData[] {
+  const homeDir = process.env.HOME || '/root';
+  const { custom: customPaths, system: systemPaths } = getSkillSearchPaths(homeDir);
+
+  const seen = new Set<string>();
+  const result: SkillData[] = [];
+
+  function addUnique(skills: SkillData[]) {
+    for (const s of skills) {
+      if (!seen.has(s.name)) {
+        seen.add(s.name);
+        result.push(s);
+      }
+    }
   }
 
-  return [...systemSkills, ...customSkills];
+  // System skills first (higher priority display)
+  for (const p of systemPaths) {
+    addUnique(scanSkillDir(p, 'system'));
+  }
+
+  // Custom skills
+  for (const p of customPaths) {
+    addUnique(scanSkillDir(p, 'custom'));
+  }
+
+  return result;
 }
 
 export function getSkillContent(name: string): string | null {
   const homeDir = process.env.HOME || '/root';
+  const { custom, system } = getSkillSearchPaths(homeDir);
 
   const searchPaths = [
-    path.join(homeDir, '.claude', 'skills', name, 'SKILL.md'),
-    `/usr/lib/node_modules/openclaw/skills/${name}/SKILL.md`,
-    `/usr/local/lib/node_modules/openclaw/skills/${name}/SKILL.md`,
-    path.join(homeDir, '.openclaw', 'skills', name, 'SKILL.md'),
+    ...custom.map(p => path.join(p, name, 'SKILL.md')),
+    ...system.map(p => path.join(p, name, 'SKILL.md')),
   ];
 
   for (const p of searchPaths) {
@@ -94,31 +156,29 @@ export function getSkillContent(name: string): string | null {
 
 export function saveSkillContent(name: string, content: string): boolean {
   const homeDir = process.env.HOME || '/root';
+  const { custom, system } = getSkillSearchPaths(homeDir);
 
-  // Only allow editing custom skills in ~/.claude/skills/
-  const skillPath = path.join(homeDir, '.claude', 'skills', name, 'SKILL.md');
-  if (!fs.existsSync(skillPath)) {
-    // Also check system paths (read-only, but file must exist somewhere)
-    const systemPaths = [
-      `/usr/lib/node_modules/openclaw/skills/${name}/SKILL.md`,
-      `/usr/local/lib/node_modules/openclaw/skills/${name}/SKILL.md`,
-      path.join(homeDir, '.openclaw', 'skills', name, 'SKILL.md'),
-    ];
-    for (const p of systemPaths) {
-      if (fs.existsSync(p)) {
-        try {
-          fs.writeFileSync(p, content, 'utf-8');
-          return true;
-        } catch { return false; }
-      }
+  // Try custom paths first (writable)
+  for (const dir of custom) {
+    const p = path.join(dir, name, 'SKILL.md');
+    if (fs.existsSync(p)) {
+      try {
+        fs.writeFileSync(p, content, 'utf-8');
+        return true;
+      } catch { /* not writable, try next */ }
     }
-    return false;
   }
 
-  try {
-    fs.writeFileSync(skillPath, content, 'utf-8');
-    return true;
-  } catch {
-    return false;
+  // Try system paths (usually read-only)
+  for (const dir of system) {
+    const p = path.join(dir, name, 'SKILL.md');
+    if (fs.existsSync(p)) {
+      try {
+        fs.writeFileSync(p, content, 'utf-8');
+        return true;
+      } catch { return false; }
+    }
   }
+
+  return false;
 }
