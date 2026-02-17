@@ -1,0 +1,29 @@
+/* Shell layout — centered in remaining space after sidebar */
+.shell {
+    min-height: 100vh;
+    padding: var(--space-xl);
+    max-width: 1100px;
+    margin-left: max(var(--sidebar-width), calc((100vw + var(--sidebar-width) - 1100px) / 2));
+    margin-right: auto;
+}
+
+@media (max-width: 768px) {
+    .shell {
+        margin-left: 0;
+        padding: var(--space-md);
+        padding-top: 60px;
+    }
+}
+
+/* Overview grid responsive */
+@media (max-width: 1200px) {
+    .overview-grid {
+        grid-template-columns: 1fr 1fr !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .overview-grid {
+        grid-template-columns: 1fr !important;
+    }
+}

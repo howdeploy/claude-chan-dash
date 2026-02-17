@@ -1,0 +1,19 @@
+/* ============================================
+ * THEME SYSTEM
+ * Catppuccin Mocha dark mode + accent switching
+ * ============================================ */
+
+:root { color-scheme: dark; }
+
+.gradient-primary {
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+}
+
+.gradient-text {
+    background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.glow { box-shadow: 0 0 12px var(--accent-primary); }

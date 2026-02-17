@@ -1,0 +1,31 @@
+/* Glassmorphism Card */
+.card {
+    background: rgba(30, 30, 46, 0.7);
+    border: 1px solid var(--surface1);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    backdrop-filter: blur(12px);
+    transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.card:hover {
+    border-color: var(--surface2);
+}
+
+.card--clickable {
+    cursor: pointer;
+}
+
+.card--clickable:hover {
+    background: rgba(30, 30, 46, 0.85);
+    border-color: var(--accent-primary);
+}
+
+.card__label {
+    font-size: 0.6875rem;
+    color: var(--overlay0);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: var(--space-sm);
+    font-weight: 600;
+}

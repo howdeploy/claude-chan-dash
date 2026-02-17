@@ -1,0 +1,89 @@
+/* ============================================
+ * TYPOGRAPHY
+ * @font-face + text styles
+ * ============================================ */
+
+@font-face {
+    font-family: 'Fira Code';
+    src: url('/fonts/FiraCode-Regular.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Fira Code';
+    src: url('/fonts/FiraCode-Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Hack';
+    src: url('/fonts/Hack-Regular.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Hack';
+    src: url('/fonts/Hack-Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Hack';
+    src: url('/fonts/Hack-Italic.woff2') format('woff2');
+    font-weight: 400;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Hack';
+    src: url('/fonts/Hack-BoldItalic.woff2') format('woff2');
+    font-weight: 700;
+    font-style: italic;
+    font-display: swap;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-hack);
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+}
+
+h1 { font-size: 2rem; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.25rem; }
+h4 { font-size: 1.125rem; }
+
+p {
+    line-height: 1.8;
+    color: var(--subtext1);
+}
+
+code, pre { font-family: var(--font-mono); }
+
+pre {
+    background: var(--surface0);
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
+    overflow-x: auto;
+    font-size: 0.875rem;
+}
+
+small {
+    font-size: 0.75rem;
+    color: var(--subtext0);
+}
+
+strong {
+    font-weight: 700;
+    color: var(--text);
+}

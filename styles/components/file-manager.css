@@ -1,0 +1,82 @@
+/* File Manager */
+.file-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.015);
+    border-radius: var(--radius-md);
+    border-left: 2px solid var(--surface1);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.file-item:hover {
+    background: rgba(203, 166, 247, 0.03);
+}
+
+.file-item__icon {
+    font-size: 0.875rem;
+    color: var(--accent-primary);
+    flex-shrink: 0;
+}
+
+.file-item__name {
+    font-size: 0.8125rem;
+    color: var(--text);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file-item__size {
+    font-size: 0.6875rem;
+    color: var(--overlay0);
+}
+
+.file-item__hint {
+    font-size: 0.625rem;
+    color: var(--surface2);
+}
+
+/* Upload Zone */
+.upload-zone {
+    border: 2px dashed var(--surface1);
+    border-radius: var(--radius-lg);
+    padding: var(--space-2xl);
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.upload-zone:hover,
+.upload-zone--active {
+    border-color: var(--accent-primary);
+    background: rgba(203, 166, 247, 0.03);
+}
+
+.upload-zone__text {
+    font-size: 0.8125rem;
+    color: var(--overlay1);
+    margin-top: var(--space-sm);
+}
+
+.upload-zone__hint {
+    font-size: 0.6875rem;
+    color: var(--overlay0);
+    margin-top: var(--space-xs);
+}
+
+/* File delete actions */
+.file-actions {
+    display: flex;
+    gap: var(--space-sm);
+    flex-shrink: 0;
+}

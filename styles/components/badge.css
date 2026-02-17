@@ -1,0 +1,115 @@
+/* Status / Category / Priority Badges */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    line-height: 1.4;
+}
+
+.badge--running {
+    color: var(--green);
+    background: rgba(166, 227, 161, 0.1);
+    border: 1px solid rgba(166, 227, 161, 0.15);
+}
+
+.badge--idle {
+    color: var(--overlay1);
+    background: rgba(127, 132, 156, 0.1);
+    border: 1px solid rgba(127, 132, 156, 0.15);
+}
+
+.badge--open {
+    color: var(--peach);
+    background: rgba(250, 179, 135, 0.1);
+    border: 1px solid rgba(250, 179, 135, 0.15);
+}
+
+.badge--in_progress {
+    color: var(--blue);
+    background: rgba(137, 180, 250, 0.1);
+    border: 1px solid rgba(137, 180, 250, 0.15);
+}
+
+.badge--done {
+    color: var(--green);
+    background: rgba(166, 227, 161, 0.08);
+    border: 1px solid rgba(166, 227, 161, 0.1);
+}
+
+.badge__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: var(--radius-round);
+    flex-shrink: 0;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Category badges */
+.badge--category {
+    font-size: 0.625rem;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-weight: 500;
+}
+
+/* Priority dot */
+.priority-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: var(--radius-round);
+    flex-shrink: 0;
+}
+
+.priority-dot--high {
+    background: var(--red);
+    box-shadow: 0 0 6px rgba(243, 139, 168, 0.5);
+}
+
+.priority-dot--medium { background: var(--peach); }
+.priority-dot--low { background: var(--surface2); }
+
+/* Type badges */
+.badge--system {
+    background: rgba(137, 180, 250, 0.1);
+    color: var(--blue);
+}
+
+.badge--custom {
+    background: rgba(250, 179, 135, 0.1);
+    color: var(--peach);
+}
+
+.badge--cron {
+    background: rgba(137, 180, 250, 0.1);
+    color: var(--blue);
+    font-size: 0.625rem;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+}
+
+.badge--assignee-me {
+    background: rgba(250, 179, 135, 0.1);
+    color: var(--peach);
+    font-size: 0.5625rem;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+}
+
+.badge--assignee-bot {
+    background: rgba(137, 180, 250, 0.1);
+    color: var(--blue);
+    font-size: 0.5625rem;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+}
