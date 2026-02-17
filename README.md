@@ -11,7 +11,7 @@
 | Стек | React SPA (1 файл) + отдельный Express API | Next.js 16 full-stack (App Router) |
 | Установка | curl install.sh + агент пишет API по спеке | `npm install && npm run dev` |
 | API | Агент создаёт сервер самостоятельно | Встроено, работает из коробки |
-| Чат | Нет | TUI-чат через `claude --print` |
+| Чат | Нет | TUI-чат через Clawdbot Gateway или `claude --print` |
 | Редактор скиллов | Только просмотр | Просмотр + редактирование SKILL.md |
 | Файлы | Плоский список | Дерево с категориями |
 | Мониторинг | Аптайм, память | CPU, RAM, диск, нагрузка, лимиты подписки |
@@ -42,23 +42,54 @@
 
 - Node.js 18+
 - npm
-- [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) (для чата)
+- [Clawdbot](https://github.com/maycrypto/clawdbot) / OpenClaw (для чата через Gateway) **или** [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) (fallback через `claude --print`)
 
 ### Переменные окружения
 
 | Переменная | Описание | По умолчанию |
 |---|---|---|
 | `WORKSPACE_PATH` | Путь к рабочей директории ассистента | `$HOME` |
+| `CLAWDBOT_GATEWAY_URL` | URL шлюза Clawdbot/OpenClaw | — |
+| `CLAWDBOT_GATEWAY_TOKEN` | Токен авторизации шлюза | — |
+| `CLAWDBOT_AGENT_ID` | ID агента для роутинга сессии | `main` |
+| `CLAWDBOT_MODEL` | Модель для API-запросов | `clawdbot:main` |
+| `CUSTOM_SKILLS_PATH` | Путь к кастомным скиллам (override автодетекта) | — |
+| `SYSTEM_SKILLS_PATH` | Путь к системным скиллам (override автодетекта) | — |
+
+#### Настройка чата через Clawdbot Gateway
+
+Чтобы чат шёл в основную сессию Clawdbot, а не в изолированные вызовы `claude --print`:
+
+1. Включи endpoint в конфиге Clawdbot (`clawdbot.json`):
+   ```json
+   {
+     "gateway": {
+       "http": {
+         "endpoints": {
+           "chatCompletions": { "enabled": true }
+         }
+       }
+     }
+   }
+   ```
+
+2. Добавь в `.env.local`:
+   ```env
+   CLAWDBOT_GATEWAY_URL=http://127.0.0.1:18789
+   CLAWDBOT_GATEWAY_TOKEN=<токен из clawdbot.json → gateway.auth.token>
+   ```
+
+Если переменные не заданы — чат автоматически использует `claude --print` как fallback.
 
 ## Что внутри
 
 | Раздел | Описание |
 |---|---|
 | **Дашборд** | Задачи дня, активные процессы, метрики сервера, прогресс лимитов подписки |
-| **Чат** | Терминальный чат с ассистентом через `claude --print` |
+| **Чат** | Терминальный чат с ассистентом через Clawdbot Gateway (или `claude --print`) |
 | **Задачи** | CRUD задач с приоритетами, категориями, датами, фильтрами по статусу и исполнителю |
 | **Процессы** | Крон-задачи и расписания ассистента |
-| **Скиллы** | Просмотр и редактирование SKILL.md (системные + кастомные) |
+| **Скиллы** | Просмотр и редактирование SKILL.md (Clawdbot/OpenClaw + Claude Code + кастомные) |
 | **Файлы** | Дерево файлов рабочей директории с загрузкой и удалением |
 | **Настройки** | Имя ассистента, цветовая тема (15 вариантов) |
 
@@ -78,7 +109,7 @@ app/
   api/
     status/route.ts       # CPU, RAM, диск, аптайм
     usage/route.ts        # Лимиты подписки из ~/.claude/stats-cache.json
-    chat/route.ts         # Прокси к claude --print
+    chat/route.ts         # Чат: Clawdbot Gateway или claude --print
     tasks/route.ts        # CRUD задач
     processes/route.ts    # Чтение процессов
     skills/route.ts       # Список + чтение/запись скиллов
@@ -98,7 +129,7 @@ lib/
     config-store.ts       # ~/.claude-dash/config.json
     task-store.ts          # ~/.claude-dash/tasks.json
     file-scanner.ts        # Сканер рабочей директории
-    skill-scanner.ts       # Сканер ~/.claude/skills/
+    skill-scanner.ts       # Сканер скиллов (Clawdbot/OpenClaw/Claude Code)
     process-cache.ts       # Чтение cron-cache.json
 
 styles/                   # CSS-переменные, компоненты, layout
@@ -106,9 +137,19 @@ styles/                   # CSS-переменные, компоненты, layo
 
 ## Как это работает
 
-Данные хранятся в JSON-файлах в `~/.claude-dash/` (задачи, конфигурация, история чата). Файловый менеджер сканирует рабочую директорию ассистента (`WORKSPACE_PATH`). Скиллы читаются из `~/.claude/skills/`.
+Данные хранятся в JSON-файлах в `~/.claude-dash/` (задачи, конфигурация, история чата). Файловый менеджер сканирует рабочую директорию ассистента (`WORKSPACE_PATH`).
 
-Чат отправляет сообщения через `claude --print` в неинтерактивном режиме с таймаутом 120 секунд.
+**Скиллы** автоматически обнаруживаются в нескольких местах (по приоритету):
+- `$CUSTOM_SKILLS_PATH` (env override)
+- `~/clawd/skills/` (Clawdbot)
+- `~/openclaw/skills/` (OpenClaw)
+- `~/.claude/skills/` (Claude Code native)
+- npx-установки (`~/.npm/_npx/*/node_modules/{clawdbot,openclaw}/skills/`)
+- Глобальные npm-пакеты
+
+**Чат** поддерживает два бэкенда:
+- **Clawdbot/OpenClaw Gateway** — OpenAI-compatible API (`/v1/chat/completions`), передаёт историю переписки, работает в основной сессии агента
+- **claude --print** (fallback) — изолированные вызовы CLI с таймаутом 120 секунд
 
 Мониторинг лимитов подписки читает `~/.claude/stats-cache.json` и вычисляет процент использования за 5 часов / день / неделю / месяц.
 
